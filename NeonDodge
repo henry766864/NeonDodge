@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Dodge Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<style>
+html, body {
+  margin:0; padding:0; overflow:hidden; height:100%; background:linear-gradient(180deg,#0a0a1f,#11112a);
+  font-family: 'Orbitron', sans-serif; touch-action:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+
+/* Page styles */
+.page {
+  position:absolute; top:0; left:0; width:100%; height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:white; text-align:center; transition:opacity 0.5s; font-weight:700;
+}
+.hidden { opacity:0; visibility:hidden; }
+
+/* Landing Page */
+#landingPage h1 { font-size:48px; margin-bottom:20px; color:#00ffe0; text-shadow:0 0 30px #00ffe0,0 0 60px #ff00ff; }
+#landingPage button {
+  margin:10px; padding:12px 24px; font-size:20px; border:none; border-radius:12px;
+  cursor:pointer; background:linear-gradient(90deg,#ff00ff,#00ffe0); color:white;
+  box-shadow:0 0 20px #00ffe0,0 0 40px #ff00ff; transition:0.3s;
+}
+#landingPage button:hover { transform: scale(1.1); }
+
+/* Instructions Page */
+#instructionsPage { background: linear-gradient(180deg,#11112a,#0a0a1f); display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 20px; color: white; text-align:center; width: 100%; height: 100%; box-sizing: border-box; overflow: hidden; }
+#instructionsPage h2 { font-size:36px; margin-bottom:20px; color:#00ffe0; text-shadow:0 0 20px #00ffe0; }
+#instructionsPage p { font-size:18px; line-height:1.5; color:white; text-align:center; max-width:90%; word-wrap: break-word; margin: 0 auto; }
+
+/* Buttons */
+button {
+  margin-top:20px; padding:12px 24px; font-size:20px; border:none; border-radius:12px;
+  cursor:pointer; background:linear-gradient(90deg,#ff00ff,#00ffe0); color:white;
+  box-shadow:0 0 20px #00ffe0,0 0 40px #ff00ff; transition:0.3s;
+}
+
+/* Game UI */
+#score, #shieldStatus {
+  display: none; position: absolute; top: 10px; font-weight: bold; text-shadow: 0 0 20px #00ffe0; white-space: nowrap;
+}
+#score { left: 5%; font-size: 2vw; color: #00ffe0; }
+#shieldStatus { right: 5%; font-size: 2vw; color: #00ffff; }
+
+/* Game Canvas */
+#gameCanvas { display:none; background:linear-gradient(180deg,#11112a,#0a0a1f); border:2px solid #00ffe0; border-radius:10px; box-shadow:0 0 30px #00ffe0 inset; position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); }
+
+/* Slider */
+#sliderContainer { display:none; position:absolute; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:400px; touch-action:none; }
+#playerSlider { -webkit-appearance:none; width:100%; height:15px; border-radius:10px; background:linear-gradient(90deg,#ff00ff,#00ffe0); box-shadow:0 0 20px #00ffe0; outline:none; }
+#playerSlider::-webkit-slider-thumb { -webkit-appearance:none; width:30px; height:30px; border-radius:50%; background:#00ffe0; box-shadow:0 0 20px #00ffe0,0 0 40px #ff00ff; cursor:pointer; }
+#playerSlider::-moz-range-thumb { width:30px; height:30px; border-radius:50%; background:#00ffe0; box-shadow:0 0 20px #00ffe0,0 0 40px #ff00ff; cursor:pointer; }
+
+/* Pause Button - smaller and moved down */
+#pauseBtn {
+  display:none; position:absolute; top:50px; right:10px; z-index:5;
+  padding:6px 12px; font-size:14px; border-radius:6px; background:#00ffff; color:white; font-weight:bold;
+  cursor:pointer; box-shadow:0 0 8px #00ffff,0 0 16px #00aaff;
+}
+
+/* Pause Overlay */
+#pauseOverlay {
+  display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);
+  justify-content:center; align-items:center; flex-direction:column; color:white; font-size:36px; font-weight:bold; z-index:10;
+}
+#pauseOverlay button { margin-top:20px; font-size:24px; background:linear-gradient(90deg,#00ffff,#00aaff); color:white; border:none; border-radius:10px; padding:10px 20px; cursor:pointer; }
+
+#gameOverPage { background: rgba(0,0,0,0.2); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#00ffe0; font-size:28px; font-weight:bold; text-shadow:0 0 20px #00ffe0; visibility:hidden; opacity:0; transition:0.5s; }
+#gameOverPage button { margin:10px; padding:10px 20px; font-size:18px; border:none; border-radius:10px; cursor:pointer; background:linear-gradient(90deg,#ff00ff,#00ffe0); color:white; box-shadow:0 0 20px #00ffe0,0 0 40px #ff00ff; }
+
+@media(max-width:400px){ #score, #shieldStatus { font-size:16px; } }
+</style>
+</head>
+<body>
+
+<div id="landingPage" class="page">
+  <h1>Neon Dodge</h1>
+  <button id="playBtn">Play</button>
+  <button id="instructionsBtn">Instructions</button>
+</div>
+
+<div id="instructionsPage" class="page hidden">
+  <h2>Instructions</h2>
+  <p>Move the slider to dodge the falling neon blocks. Collect shields for protection. Survive as long as possible!</p>
+  <button id="backBtn">Back</button>
+</div>
+
+<div id="score">Seconds: 0</div>
+<div id="shieldStatus">Shield: 0</div>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+<div id="sliderContainer">
+  <input type="range" id="playerSlider" min="0" max="360" value="180">
+</div>
+
+<button id="pauseBtn">Pause</button>
+
+<div id="pauseOverlay">
+  PAUSED
+  <button id="resumeBtn">Resume</button>
+  <button id="pauseMenuBtn">Main Menu</button>
+</div>
+
+<div id="gameOverPage" class="page">
+  <div>GAME OVER</div>
+  <div style="display:flex;">
+    <button id="retryBtn">Retry</button>
+    <button id="mainMenuBtn">Main Menu</button>
+  </div>
+</div>
+
+<audio id="bgMusic" src="Retrowave(1).m4a" preload="auto"></audio>
+
+<script>
+// JavaScript is unchanged
+const landingPage = document.getElementById('landingPage');
+const instructionsPage = document.getElementById('instructionsPage');
+const playBtn = document.getElementById('playBtn');
+const instructionsBtn = document.getElementById('instructionsBtn');
+const backBtn = document.getElementById('backBtn');
+const scoreDiv = document.getElementById('score');
+const shieldDiv = document.getElementById('shieldStatus');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const slider = document.getElementById('playerSlider');
+const sliderContainer = document.getElementById('sliderContainer');
+const gameOverPage = document.getElementById('gameOverPage');
+const retryBtn = document.getElementById('retryBtn');
+const mainMenuBtn = document.getElementById('mainMenuBtn');
+const bgMusic = document.getElementById('bgMusic');
+const pauseBtn = document.getElementById('pauseBtn');
+const pauseOverlay = document.getElementById('pauseOverlay');
+const resumeBtn = document.getElementById('resumeBtn');
+const pauseMenuBtn = document.getElementById('pauseMenuBtn');
+
+const player = {x:180, y:500, width:40, height:40};
+let blocks=[], gameOver=false, startTime=null;
+let shieldHits=0, shieldActive=false, shieldTimeout=null;
+let paused=false;
+
+slider.max = canvas.width - player.width;
+slider.addEventListener('input', e=>{ player.x = parseInt(e.target.value); e.preventDefault(); });
+
+// Page management
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  page.classList.remove('hidden');
+}
+
+// Start game
+function startGame(){
+  gameOver=false;
+  paused=false;
+  blocks=[];
+  player.x=180; player.y=500; slider.value=180;
+  shieldHits=0; shieldActive=false;
+  scoreDiv.textContent='Seconds: 0';
+  shieldDiv.textContent='Shield: 0';
+
+  canvas.style.display='block';
+  sliderContainer.style.display='flex';
+  scoreDiv.style.display='block';
+  shieldDiv.style.display='block';
+  pauseBtn.style.display='block';
+  pauseOverlay.style.display='none';
+  gameOverPage.style.visibility='hidden';
+  gameOverPage.style.opacity=0;
+
+  startTime = Date.now();
+
+  bgMusic.play().catch(()=>{});
+  bgMusic.loop=true;
+
+  requestAnimationFrame(gameLoop);
+}
+
+instructionsBtn.addEventListener('click', ()=> showPage(instructionsPage));
+backBtn.addEventListener('click', ()=> showPage(landingPage));
+playBtn.addEventListener('click', startGame);
+retryBtn.addEventListener('click', startGame);
+
+// Main menu buttons
+mainMenuBtn.addEventListener('click', goToMainMenu);
+pauseMenuBtn.addEventListener('click', goToMainMenu);
+
+function goToMainMenu(){
+  paused=false;
+  gameOver=true;
+  canvas.style.display='none';
+  sliderContainer.style.display='none';
+  scoreDiv.style.display='none';
+  shieldDiv.style.display='none';
+  pauseBtn.style.display='none';
+  pauseOverlay.style.display='none';
+  bgMusic.pause(); bgMusic.currentTime=0;
+  showPage(landingPage);
+}
+
+// Pause & Resume
+pauseBtn.addEventListener('click', ()=>{
+  paused=true;
+  pauseOverlay.style.display='flex';
+  bgMusic.pause();
+});
+resumeBtn.addEventListener('click', ()=>{
+  paused=false;
+  pauseOverlay.style.display='none';
+  bgMusic.play().catch(()=>{});
+});
+
+// Spawn blocks
+function spawnBlock(){
+  if(paused || gameOver) return;
+  const elapsed=(Date.now()-startTime)/1000;
+  let spawnChance = elapsed>5?1:0.6;
+  if(Math.random()<spawnChance){
+    const size=30+Math.random()*20;
+    const x=Math.random()*(canvas.width-size);
+    let isShield=Math.random()<0.1;
+    blocks.push({x:x,y:0,width:size,height:size,speed:3+Math.random()*3,color:`hsl(${Math.random()*360},100%,50%)`,isShield:isShield});
+  }
+}
+setInterval(spawnBlock,500);
+
+// Draw & update
+function drawPlayer(){
+  if(shieldActive && shieldHits>0){
+    let gradient = ctx.createRadialGradient(player.x+player.width/2,player.y+player.height/2,player.width/2,player.x+player.width/2,player.y+player.height/2,player.width);
+    gradient.addColorStop(0,'rgba(0,255,255,0.3)');
+    gradient.addColorStop(0.5,'rgba(0,255,255,0.15)');
+    gradient.addColorStop(1,'rgba(0,255,255,0.05)');
+    ctx.fillStyle=gradient;
+    ctx.shadowColor='#00ffff';
+    ctx.shadowBlur=15;
+    ctx.beginPath();
+    ctx.arc(player.x+player.width/2,player.y+player.height/2,player.width,0,Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur=0;
+  }
+  ctx.fillStyle='#00ffe0';
+  ctx.shadowColor='#00ffe0';
+  ctx.shadowBlur=20;
+  ctx.fillRect(player.x,player.y,player.width,player.height);
+  ctx.shadowBlur=0;
+}
+
+function drawBlocks(){
+  blocks.forEach(b=>{
+    if(b.isShield){
+      let gradient=ctx.createRadialGradient(b.x+b.width/2,b.y+b.height/2,b.width*0.1,b.x+b.width/2,b.y+b.height/2,b.width/2);
+      gradient.addColorStop(0,'rgba(0,255,255,0.6)');
+      gradient.addColorStop(0.5,'rgba(0,255,255,0.3)');
+      gradient.addColorStop(1,'rgba(0,255,255,0.05)');
+      ctx.fillStyle=gradient;
+      ctx.beginPath();
+      ctx.arc(b.x+b.width/2,b.y+b.height/2,b.width/2,0,Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle='rgba(0,255,255,0.7)';
+      ctx.lineWidth=3;
+      ctx.shadowColor='#00ffe0';
+      ctx.shadowBlur=15;
+      ctx.beginPath();
+      ctx.arc(b.x+b.width/2,b.y+b.height/2,b.width/2,0,Math.PI*2);
+      ctx.stroke();
+      ctx.shadowBlur=0;
+    } else {
+      ctx.fillStyle=b.color;
+      ctx.shadowColor=b.color;
+      ctx.shadowBlur=20;
+      ctx.fillRect(b.x,b.y,b.width,b.height);
+      ctx.shadowBlur=0;
+    }
+  });
+}
+
+function update(){
+  if(paused || gameOver) return;
+  blocks.forEach((b,i)=>{
+    b.y+=b.speed;
+    if(player.x<b.x+b.width && player.x+player.width>b.x && player.y<b.y+b.height && player.y+player.height>b.y){
+      if(b.isShield){
+        shieldHits=3; shieldActive=true;
+        shieldDiv.textContent='Shield: '+shieldHits;
+        if(shieldTimeout) clearTimeout(shieldTimeout);
+        shieldTimeout=setTimeout(()=>{ shieldHits=0; shieldActive=false; shieldDiv.textContent='Shield: 0'; },10000);
+        blocks.splice(i,1);
+      } else {
+        if(shieldActive && shieldHits>0){ shieldHits--; shieldDiv.textContent='Shield: '+shieldHits; blocks.splice(i,1);}
+        else showGameOver();
+      }
+    }
+  });
+  blocks=blocks.filter(b=>b.y<canvas.height);
+  scoreDiv.textContent='Seconds: '+((Date.now()-startTime)/1000).toFixed(1);
+}
+
+function gameLoop(){
+  if(gameOver) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawPlayer();
+  drawBlocks();
+  update();
+  requestAnimationFrame(gameLoop);
+}
+
+function showGameOver(){
+  gameOver=true;
+  pauseBtn.style.display='none';
+  pauseOverlay.style.display='none';
+  gameOverPage.style.visibility='visible';
+  gameOverPage.style.opacity=1;
+  bgMusic.pause(); bgMusic.currentTime=0;
+}
+</script>
+</body>
+</html>
